@@ -56,3 +56,59 @@ CMD ["npm", "start"]
 
 
   
+# docker-compose.yml
+React App과 Nodejs서버를 같은 디렉토리에 넣은 후, 각 서비스별 Dockerfile은 그대로 두고 상위 디렉토리에 docker-compose.yml을 추가하고 코드 작성한다.
+```
+APP
+ |-- client(react app)
+ |-- server(nodejs server)
+ | .gitignore
+ | .dockerignore
+ | docker-compose.yml
+ | .env
+ | README.md
+```
+빌드시에는 `docker-compose up --build`
+
+최상위폴더 APP의 .env에는 docker-compose.yml에 들어갈 환경변수 설정
+docker-compose.yml의 예시는 다음과 같다.
+```
+version: "3"
+
+services:
+  ########################
+  # setup node container #
+  ########################
+  server:
+    build: ./server
+    expose:
+      - ${APP_SERVER_PORT}
+    environment:
+      API_HOST: ${API_HOST}
+      APP_SERVER_PORT: ${APP_SERVER_PORT}
+    ports:
+      - ${APP_SERVER_PORT}:${APP_SERVER_PORT}
+    volumes:
+      - ./server/api:/app/api
+      - ./server/models:/app/models
+    command: node app.js
+
+  #########################
+  # setup react container #
+  #########################
+  client:
+    build: ./client
+    environment:
+      - REACT_APP_PORT=${REACT_APP_PORT}
+    expose:
+      - ${REACT_APP_PORT}
+    ports:
+      - ${REACT_APP_PORT}:${REACT_APP_PORT}
+    volumes:
+      - ./client/src:/app/src
+      - ./client/public:/app/public
+    links:
+      - server
+    command: npm start
+```
+볼륨 설정시 path:/app/path의 코드가 변하면 자동으로 도커에 포함된다. 예를들면 Nodejs서버의 src, models와 React App의 public, src
